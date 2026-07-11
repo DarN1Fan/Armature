@@ -1,111 +1,270 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #1a1a1a;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+/* ── Control bar buttons ─────────────────────────────── */
+.arm-btn {
+  background: transparent;
+  color: #888888;
+  border: 1px solid #333333;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.7;
+  transition: background 0.1s ease-out, color 0.1s ease-out, border-color 0.1s ease-out;
+}
+.arm-btn:hover         { background: #333333; color: #ffffff; border-color: #444444; }
+.arm-btn--active       { color: #e8a020; border-color: #e8a020; }
+.arm-btn--active:hover { background: rgba(232,160,32,0.08); color: #e8a020; border-color: #e8a020; }
+.arm-btn:focus-visible { outline: 2px solid #e8a020; outline-offset: 2px; }
+
+/* Ghost variant — borderless utility button for numeric/inline controls
+   (e.g. zoom reset). Keeps the arm-btn focus/hover vocabulary but drops the
+   border chrome and uses monospace for the numeric value it displays. */
+.arm-btn--ghost {
+  border-color: transparent;
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.arm-btn--ghost:hover { background: #333333; color: #ffffff; border-color: #444444; }
+/* At default zoom (1x): latent affordance — present but quiet, no border chrome,
+   no pointer cursor. Stays in the DOM as an interactive element rather than
+   being disabled, so it never reads as static text. */
+.arm-btn--at-default {
+  color: #555555;
+  cursor: default;
+  background: transparent;
+  border-color: transparent;
+}
+/* Non-default zoom: full ghost treatment — visible border, pointer, brighter text */
+.arm-btn--ghost:not(.arm-btn--at-default) {
+  color: #aaaaaa;
+  cursor: pointer;
+  border-color: #333333;
+}
+
+/* Play/pause — primary action, always uses Active Ember icon */
+.arm-btn-play {
+  background: transparent;
+  color: #e8a020;
+  border: 1px solid #333333;
+  padding: 1px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background 0.1s ease-out, border-color 0.1s ease-out;
+}
+.arm-btn-play:hover        { background: rgba(232,160,32,0.08); border-color: #555555; }
+.arm-btn-play:focus-visible { outline: 2px solid #e8a020; outline-offset: 2px; }
+
+/* ── Control bar separator ───────────────────────────── */
+.arm-ctrl-sep {
+  width: 2px;
+  height: 14px;
+  background: #3a3a3a;
+  flex-shrink: 0;
+  margin: 0 6px;
+}
+
+/* ── Scrub bar — interactive scrub zone ──────────────── */
+.arm-scrub-bar {
+  background: #2a2a2a;
+  cursor: col-resize;
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid transparent;
+  transition: background 0.1s ease-out, border-color 0.1s ease-out;
+}
+.arm-scrub-bar:hover {
+  background: #333333;
+  border-top: 1px solid #e8a020;
+}
+/* Brighten major ticks when the scrub zone is hovered */
+.arm-scrub-bar:hover .arm-scrub-tick--major  { background: #dddddd; }
+.arm-scrub-bar:hover .arm-scrub-tick-label   { color: #dddddd; }
+
+/* ── Easing preset buttons ───────────────────────────── */
+.arm-btn-easing {
+  background: transparent;
+  color: #888888;
+  border: 1px solid #2e2e2e;
+  padding: 1px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 10px;
+  line-height: 1.6;
+  transition: background 0.1s ease-out, color 0.1s ease-out, border-color 0.1s ease-out;
+}
+.arm-btn-easing:hover                  { background: #2e2e2e; color: #aaaaaa; }
+.arm-btn-easing--active                { background: #e8a020; color: #111111; border-color: #e8a020; }
+.arm-btn-easing--active:hover          { background: #d4921c; border-color: #d4921c; }
+.arm-btn-easing:focus-visible          { outline: 2px solid #e8a020; outline-offset: 2px; }
+.arm-btn-easing--active:focus-visible  { outline: 2px solid #ffffff; }
+
+/* ── Frame counter ───────────────────────────────────── */
+.arm-frame-counter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+}
+.arm-frame-counter__label {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: #666666;
+}
+.arm-frame-counter__current {
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  color: #ffffff;
+  min-width: 3ch;
+  text-align: right;
+}
+.arm-frame-counter__sep {
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  color: #666666;
+}
+
+/* ── Duration / frame input ──────────────────────────── */
+.arm-frame-input {
+  width: 44px;
+  background: transparent;
+  color: #cccccc;
+  border: 1px solid #2e2e2e;
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1;
+  -moz-appearance: textfield;
+}
+.arm-frame-input:hover                        { border-color: #444444; }
+.arm-frame-input:focus                        { outline: none; border-color: #e8a020; color: #dddddd; }
+.arm-frame-input::-webkit-outer-spin-button,
+.arm-frame-input::-webkit-inner-spin-button   { -webkit-appearance: none; margin: 0; }
+
+/* ── Label column ────────────────────────────────────── */
+.arm-label-col {
+  width: 80px;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  flex-shrink: 0;
+  border-right: 1px solid #222222;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
+/* ── Track labels ────────────────────────────────────── */
+.arm-track-label {
+  height: 35px;
+  line-height: 35px;
+  color: #888888;
+  padding: 0 10px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 10px;
   font-weight: 500;
-  color: var(--text-h);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+/* ── Keyframe diamonds ───────────────────────────────── */
+.arm-keyframe {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  cursor: ew-resize;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: transform 0.1s ease-out, background 0.08s ease-out;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+.arm-keyframe--default            { background: #4a4a4a; border: 1px solid #666666; }
+.arm-keyframe--default:hover      { background: #cccccc; border-color: #cccccc; transform: translate(-50%, -50%) rotate(45deg) scale(1.3); }
+.arm-keyframe--selected           { background: #e8a020; border: 1px solid #e8a020; }
+.arm-keyframe--selected:hover     { transform: translate(-50%, -50%) rotate(45deg) scale(1.2); }
+.arm-keyframe:focus-visible       { outline: none; box-shadow: 0 0 0 2px #e8a020; }
+
+/* ── Empty track ghost copy ──────────────────────────── */
+.arm-track-empty {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #888888;
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  user-select: none;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* ── Demo element first-load interactivity hint ───────── */
+/* Shadowless Bench Rule: no box-shadow/glow. We signal "this is draggable" with an
+   animated 1px border pulsing within the neutral depth stack (#333 ↔ #555), the
+   sanctioned way to express emphasis without shadow or a second accent color. */
+.arm-demo-element {
+  position: relative;
+  animation: arm-demo-pulse 1.8s ease-in-out 4;
+}
+@keyframes arm-demo-pulse {
+  0%, 100% { border-color: #3a3a3a; }
+  50%      { border-color: #555555; }
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* ── Reduced motion ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .arm-btn, .arm-btn-play, .arm-btn-easing, .arm-keyframe { transition: none; }
+  .arm-keyframe--default:hover, .arm-keyframe--selected:hover { transform: translate(-50%, -50%) rotate(45deg); }
+  .arm-demo-element { animation: none; border-color: #555555; }
+}
+
+/* ── Rig: bone group header in timeline ──────────────────────────────── */
+.arm-bone-header {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  background: #131313;
+  border-bottom: 1px solid #222222;
+  cursor: pointer;
+  user-select: none;
+  padding: 0 8px;
+  gap: 6px;
+  position: relative;
+}
+.arm-bone-header--active {
+  background: #1c1c1c;
+}
+.arm-bone-header__label {
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 10px;
+  color: #555555;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arm-bone-header__label--active {
+  color: #e8a020;
+  font-weight: 600;
+}
+
+/* ── Rig: collapsed summary lane ─────────────────────────────────────── */
+.arm-bone-summary {
+  height: 16px;
+  background: #1a1a1a;
+  position: relative;
 }

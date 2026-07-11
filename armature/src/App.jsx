@@ -1,121 +1,60 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import RigEditor from './components/rig/RigEditor.jsx'
+import Bone from './components/rig/Bone.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: '#0d0d0d',
+        backgroundImage:
+          'linear-gradient(#222222 1px, transparent 1px), linear-gradient(90deg, #222222 1px, transparent 1px), linear-gradient(#1f1f1f 1px, transparent 1px), linear-gradient(90deg, #1f1f1f 1px, transparent 1px)',
+        backgroundSize: '160px 160px, 160px 160px, 40px 40px, 40px 40px',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Origin axes */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 1, background: '#222222', pointerEvents: 'none' }} />
+      <div aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, background: '#222222', pointerEvents: 'none' }} />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* Arm rig centered in viewport — Timeline portals to document.body so it always anchors to the true viewport bottom */}
+      <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+        <RigEditor>
+          {/* Shoulder — widest, longest */}
+          <Bone id="shoulder" pivotX={50} pivotY={0}>
+            <div style={{ position: 'relative', width: 22, height: 90, background: '#3d3d3d', border: '1px solid #555', borderRadius: 5 }}>
+              {/* Elbow attaches at the bottom center of shoulder */}
+              <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }}>
+                <Bone id="elbow" pivotX={50} pivotY={0}>
+                  <div style={{ position: 'relative', width: 18, height: 72, background: '#363636', border: '1px solid #4a4a4a', borderRadius: 4 }}>
+                    {/* Wrist attaches at the bottom center of elbow */}
+                    <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }}>
+                      <Bone id="wrist" pivotX={50} pivotY={0}>
+                        <div style={{ position: 'relative', width: 14, height: 54, background: '#303030', border: '1px solid #444', borderRadius: 4 }}>
+                          {/* Hand attaches at the bottom center of wrist */}
+                          <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }}>
+                            <Bone id="hand" pivotX={50} pivotY={0}>
+                              <div style={{
+                                width: 36, height: 30,
+                                background: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 4,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 8, color: '#555' }}>hand</span>
+                              </div>
+                            </Bone>
+                          </div>
+                        </div>
+                      </Bone>
+                    </div>
+                  </div>
+                </Bone>
+              </div>
+            </div>
+          </Bone>
+        </RigEditor>
+      </div>
+    </div>
   )
 }
 
