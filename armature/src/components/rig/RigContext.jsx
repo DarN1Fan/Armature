@@ -140,16 +140,30 @@ export function RigProvider({ children, initialRig, uiScale = 1 }) {
     useEffect(() => { durationRef.current      = duration }, [duration])
     useEffect(() => { zoomRef.current          = zoom }, [zoom])
     useEffect(() => { selectedBoneIdRef.current = selectedBoneId }, [selectedBoneId])
-    // liveScale is a single shared value representing "the active bone's live
-    // scale" -- without this, switching which bone is active leaves it holding
-    // the PREVIOUS bone's value, so typing/scrolling a new scale for the newly
-    // active bone starts from stale data instead of that bone's own value.
+    // liveX/liveY/liveRotation/liveScale are each a single value shared across
+    // all bones, representing "the currently active bone's live transform" --
+    // without this, switching which bone is active leaves all four holding the
+    // PREVIOUSLY active bone's values. A bone with no x/y keyframes of its own
+    // (e.g. one that's only ever been rotated) would then visibly jump to
+    // wherever the last-dragged bone happened to be, since nothing else resets
+    // it. Resync all four to the newly active bone's own true values on switch.
     useEffect(() => {
         const bone = bonesRef.current[selectedBoneId]
-        const interp = bone ? interpolateTrack(currentFrameRef.current, bone.tracks.scale) : null
-        const value = interp !== null ? interp : 1
-        setLiveScale(value)
-        liveScaleRef.current = value
+        const frame = currentFrameRef.current
+        const xInterp     = bone ? interpolateTrack(frame, bone.tracks.x)        : null
+        const yInterp     = bone ? interpolateTrack(frame, bone.tracks.y)        : null
+        const rotInterp   = bone ? interpolateTrack(frame, bone.tracks.rotation) : null
+        const scaleInterp = bone ? interpolateTrack(frame, bone.tracks.scale)    : null
+
+        const x        = xInterp   !== null ? (xInterp / 100) * window.innerWidth  : 0
+        const y        = yInterp   !== null ? (yInterp / 100) * window.innerHeight : 0
+        const rotation = rotInterp !== null ? rotInterp : 0
+        const scale    = scaleInterp !== null ? scaleInterp : 1
+
+        setLiveX(x);               liveXRef.current = x
+        setLiveY(y);               liveYRef.current = y
+        setLiveRotation(rotation); liveRotRef.current = rotation
+        setLiveScale(scale);       liveScaleRef.current = scale
     }, [selectedBoneId])
     useEffect(() => { setScaleInput(liveScale.toFixed(2)) }, [liveScale])
     useEffect(() => {
