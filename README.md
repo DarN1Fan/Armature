@@ -1,5 +1,7 @@
 # Armature
 
+![Armature demo — an agent-authored animation playing and being edited live in the timeline](docs/media/showcase.gif)
+
 Armature is an open-source drop-in animation editor for React. Wrap any element with `AnimationBone`, reach for `AnimationEditor`, and get a full Blender-style timeline in your running app — no separate design tool, no export pipeline, no context switching.
 
 It's built for React developers who think in components and props, not timelines and keyframes — install, wrap, ship.
