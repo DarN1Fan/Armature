@@ -46,12 +46,12 @@ function RigPlayerHandle({ playerRef }) {
 // 1 is the default/original size, e.g. 1.4 makes everything 40% bigger.
 const RigEditor = forwardRef(function RigEditor({ children, initialRig, showTimeline = true, uiScale = 1 }, ref) {
     return (
-        <RigProvider initialRig={initialRig}>
+        <RigProvider initialRig={initialRig} uiScale={uiScale}>
             <RigPlayerHandle playerRef={ref} />
             <RigStage>
                 {children}
             </RigStage>
-            {showTimeline && <Timeline uiScale={uiScale} />}
+            {showTimeline && <Timeline />}
         </RigProvider>
     )
 })

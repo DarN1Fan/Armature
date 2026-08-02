@@ -7,8 +7,9 @@ import BoneTrackGroup from './BoneTrackGroup.jsx'
 // Timeline — pure rendering, all mouse/keyboard event logic lives in RigContext
 // ---------------------------------------------------------------------------
 
-function Timeline({ uiScale = 1 }) {
+function Timeline() {
     const rig = useRig()
+    const uiScale = rig.uiScale
 
     // ── Timeline height calculation ────────────────────────────────────────
     const SCRUB_HEIGHT    = 30
@@ -59,7 +60,8 @@ function Timeline({ uiScale = 1 }) {
     // width is pre-divided by uiScale so the post-transform painted box still
     // spans the full viewport width; height is left as-is so it visibly grows
     // with the scale (transformOrigin anchors it to the true viewport bottom).
-    return createPortal(
+    return [
+    createPortal(
         <div style={{ position: 'fixed', bottom: 0, left: 0, width: `${100 / uiScale}vw`, height: timelineHeight, transform: uiScale !== 1 ? `scale(${uiScale})` : undefined, transformOrigin: 'bottom left', background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}>
 
             {/* Control bar */}
@@ -130,14 +132,6 @@ function Timeline({ uiScale = 1 }) {
                 </div>
             )}
 
-            {/* Easing curve tooltip */}
-            {rig.selectedKeyframes.length > 0 && rig.hoveredEasing && EASING_CURVES[rig.hoveredEasing] && (
-                <div style={{ position: 'fixed', left: rig.easingTooltipPos.x, top: rig.easingTooltipPos.y - 52, transform: 'translateX(-50%)', background: '#1a1a1a', border: '1px solid #333', borderRadius: 2, padding: '6px 5px', zIndex: 100, pointerEvents: 'none' }}>
-                    <svg width="44" height="28" style={{ display: 'block', overflow: 'visible' }}>
-                        <path d={EASING_CURVES[rig.hoveredEasing]} fill="none" stroke="#e8a020" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </div>
-            )}
 
             {/* Shortcut panel */}
             {rig.showShortcuts && (
@@ -200,8 +194,8 @@ function Timeline({ uiScale = 1 }) {
                             const containerRect = rig.trackContainerRef.current?.getBoundingClientRect()
                             if (!containerRect) return
                             const scrollLeft = rig.trackContainerRef.current.scrollLeft
-                            const cx = e.clientX - containerRect.left + scrollLeft
-                            const cy = e.clientY - containerRect.top
+                            const cx = (e.clientX - containerRect.left) / uiScale + scrollLeft
+                            const cy = (e.clientY - containerRect.top) / uiScale
                             if (cy < SCRUB_HEIGHT) return
                             rig.setSelectedKeyframes([])
                             rig.selectDragStartRef.current = { x: cx, y: cy }
@@ -228,8 +222,22 @@ function Timeline({ uiScale = 1 }) {
                 </div>
             </div>
         </div>,
-        document.body
-    )
+        document.body,
+        'timeline'
+    ),
+    // Rendered as its own portal, outside the scaled Timeline root — a
+    // transformed ancestor becomes the containing block for descendant
+    // position:fixed elements, which would otherwise mis-place this tooltip.
+    rig.selectedKeyframes.length > 0 && rig.hoveredEasing && EASING_CURVES[rig.hoveredEasing] && createPortal(
+        <div style={{ position: 'fixed', left: rig.easingTooltipPos.x, top: rig.easingTooltipPos.y - 52, transform: 'translateX(-50%)', background: '#1a1a1a', border: '1px solid #333', borderRadius: 2, padding: '6px 5px', zIndex: 100, pointerEvents: 'none' }}>
+            <svg width="44" height="28" style={{ display: 'block', overflow: 'visible' }}>
+                <path d={EASING_CURVES[rig.hoveredEasing]} fill="none" stroke="#e8a020" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        </div>,
+        document.body,
+        'easing-tooltip'
+    ),
+    ]
 }
 
 export default Timeline

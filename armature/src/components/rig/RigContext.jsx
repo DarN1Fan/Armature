@@ -44,7 +44,7 @@ function upsertKf(track, frame, value) {
 // Provider component — the ONE store
 // ---------------------------------------------------------------------------
 
-export function RigProvider({ children, initialRig }) {
+export function RigProvider({ children, initialRig, uiScale = 1 }) {
     const [seed] = useState(() => (initialRig ? normalizeRigData(initialRig) : null))
 
     // ── bones keyed by id ──────────────────────────────────────────────────
@@ -265,11 +265,15 @@ export function RigProvider({ children, initialRig }) {
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mouseup', handleMouseUp)
         }
-    }, [isDraggingKeyframe]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isDraggingKeyframe])
 
     // ── Marquee / drag-to-select ───────────────────────────────────────────
     useEffect(() => {
         if (!isSelectDragging) return
+        // getBoundingClientRect()/clientX/clientY are post-uiScale screen pixels;
+        // scrollLeft and the track-row layout below are local (pre-scale) pixels.
+        // Divide screen deltas by uiScale before mixing the two, or the box drifts
+        // away from the cursor proportionally to uiScale and distance dragged.
         function handleMouseMove(e) {
             const container = trackContainerRef.current
             if (!container) return
@@ -277,8 +281,8 @@ export function RigProvider({ children, initialRig }) {
             setSelectDragRect({
                 x1: selectDragStartRef.current.x,
                 y1: selectDragStartRef.current.y,
-                x2: e.clientX - rect.left + container.scrollLeft,
-                y2: e.clientY - rect.top,
+                x2: (e.clientX - rect.left) / uiScale + container.scrollLeft,
+                y2: (e.clientY - rect.top) / uiScale,
             })
         }
         function handleMouseUp(e) {
@@ -290,11 +294,11 @@ export function RigProvider({ children, initialRig }) {
             const scrollLeft = container.scrollLeft
             const x1 = selectDragStartRef.current.x
             const y1 = selectDragStartRef.current.y
-            const x2 = e.clientX - rect.left + scrollLeft
-            const y2 = e.clientY - rect.top
+            const x2 = (e.clientX - rect.left) / uiScale + scrollLeft
+            const y2 = (e.clientY - rect.top) / uiScale
             const minX = Math.min(x1, x2), maxX = Math.max(x1, x2)
             const minY = Math.min(y1, y2), maxY = Math.max(y1, y2)
-            const zoomedWidth = rect.width * zoomRef.current
+            const zoomedWidth = (rect.width / uiScale) * zoomRef.current
             const minFrame    = (minX / zoomedWidth) * durationRef.current
             const maxFrame    = (maxX / zoomedWidth) * durationRef.current
 
@@ -360,7 +364,7 @@ export function RigProvider({ children, initialRig }) {
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mouseup', handleMouseUp)
         }
-    }, [isScrubbing]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isScrubbing])
 
     // ── Active-bone position drag ──────────────────────────────────────────
     useEffect(() => {
@@ -709,6 +713,7 @@ export function RigProvider({ children, initialRig }) {
         isDragging, setIsDragging,
         isRotating, setIsRotating,
         isScalingHandle, setIsScalingHandle,
+        uiScale,
         isScrubbing, setIsScrubbing,
         isDraggingKeyframe, setIsDraggingKeyframe,
         isSelectDragging, setIsSelectDragging,
