@@ -25,10 +25,10 @@ function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 80 }}>
             <Bone id="head" pivotX={50} pivotY={50}>
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#e8c520', border: '1px solid #b89b18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="34" height="34" viewBox="0 0 34 34">
-                  <circle cx="11" cy="14" r="2.4" fill="#3a2f08" />
-                  <circle cx="23" cy="14" r="2.4" fill="#3a2f08" />
-                  <path d="M 9 21 Q 17 28 25 21" stroke="#3a2f08" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+                <svg width="52" height="52" viewBox="0 0 52 52">
+                  <circle cx="15" cy="20" r="4" fill="#3a2f08" />
+                  <circle cx="37" cy="20" r="4" fill="#3a2f08" />
+                  <path d="M 10 30 Q 26 46 42 30" stroke="#3a2f08" strokeWidth="4" fill="none" strokeLinecap="round" />
                 </svg>
               </div>
             </Bone>

@@ -25,8 +25,7 @@ function Timeline() {
             // panel's own local (pre-transform) pixels, same reasoning as the
             // marquee-select fix: clientY is post-scale, `bottom` is not.
             const delta = (startClientY - ev.clientY) / uiScale
-            const next  = Math.max(0, Math.min(window.innerHeight - 80, startOffset + delta))
-            setDragOffset(next)
+            setDragOffset(startOffset + delta)
         }
         function onUp() {
             window.removeEventListener('mousemove', onMove)
