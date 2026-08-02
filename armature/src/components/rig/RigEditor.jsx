@@ -20,9 +20,9 @@ function RigStage({ children }) {
 // RigEditor: top-level exported component
 // RigProvider holds all state + effects.
 // RigStage and Timeline are both children of that provider.
-function RigEditor({ children }) {
+function RigEditor({ children, initialRig }) {
     return (
-        <RigProvider>
+        <RigProvider initialRig={initialRig}>
             <RigStage>
                 {children}
             </RigStage>

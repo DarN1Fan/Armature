@@ -44,15 +44,17 @@ function upsertKf(track, frame, value) {
 // Provider component — the ONE store
 // ---------------------------------------------------------------------------
 
-export function RigProvider({ children }) {
+export function RigProvider({ children, initialRig }) {
+    const [seed] = useState(() => (initialRig ? normalizeRigData(initialRig) : null))
+
     // ── bones keyed by id ──────────────────────────────────────────────────
-    const [bones, setBones] = useState({})          // { [id]: BoneRecord }
-    const [boneOrder, setBoneOrder] = useState([])  // DFS registration order
+    const [bones, setBones] = useState(() => seed?.bones ?? {})          // { [id]: BoneRecord }
+    const [boneOrder, setBoneOrder] = useState(() => seed?.boneOrder ?? [])  // DFS registration order
 
     // ── clock ──────────────────────────────────────────────────────────────
     const [currentFrame, setCurrentFrame] = useState(0)
-    const [duration, setDuration] = useState(300)
-    const [durationInput, setDurationInput] = useState('300')
+    const [duration, setDuration] = useState(() => seed?.duration ?? 300)
+    const [durationInput, setDurationInput] = useState(() => String(seed?.duration ?? 300))
     const [fps] = useState(60)
     const [isPlaying, setIsPlaying] = useState(false)
     const [isLooping, setIsLooping] = useState(false)
@@ -126,7 +128,7 @@ export function RigProvider({ children }) {
 
     // ── history ────────────────────────────────────────────────────────────
     // Each snapshot: { bones: deepCopy }
-    const history      = useRef([{ bones: {} }])
+    const history      = useRef([{ bones: seed ? deepCloneBones(seed.bones) : {} }])
     const historyIndex = useRef(0)
 
     // ── sync refs ──────────────────────────────────────────────────────────
