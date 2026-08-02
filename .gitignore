@@ -31,5 +31,6 @@ lerna-debug.log*
 *.sw?
 
 # Tooling
-.claude/
+.claude/*
+!.claude/commands
 .impeccable/

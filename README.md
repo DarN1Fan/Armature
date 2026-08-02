@@ -30,6 +30,8 @@ This launches the demo app: a small hierarchical arm rig (shoulder → elbow →
 
 ## Animate an object with Claude
 
+This repo ships a [`CLAUDE.md`](CLAUDE.md) that Claude Code reads automatically. If you have Claude Code and just downloaded this repo, you can usually skip everything below and simply type `/animate make this ball bounce` (or plain English like "make this ball bounce" — the same instructions apply either way) — Claude already knows the workflow. The steps below are what it's following under the hood, useful if you're doing it by hand or with another agent.
+
 1. **Make the element a bone.** Wrap it in `<Bone id="..." pivotX={..} pivotY={..}>` somewhere inside `<RigEditor>` in `App.jsx`. `pivotX`/`pivotY` (0–100) set the rotation/scale origin as a percentage of the element's own box.
 
    ```jsx
