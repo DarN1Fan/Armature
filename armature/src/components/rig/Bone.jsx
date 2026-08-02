@@ -1,4 +1,5 @@
 import { useEffect, useRef, useContext, createContext, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useRig } from './RigContext.jsx'
 import AnimationBone from '../AnimationBone.jsx'
 import { interpolateTrack } from './interpolation.js'
@@ -216,8 +217,18 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     }
 
     // ── Rotation ring SVG ─────────────────────────────────────────────────
+    // Portaled to document.body at a computed screen position, rather than
+    // absolutely positioned inside this bone's own wrapper: a nested bone
+    // (e.g. hand, inside wrist inside elbow inside shoulder) creates its own
+    // stacking context via its transform, which can otherwise paint over an
+    // ancestor's ring/handles regardless of z-index. Portaling escapes that
+    // entirely, same pattern as the Timeline and its easing tooltip.
     function renderRotationRing() {
         if (!isActive || !rig.showRotation) return null
+        const box = measureRef.current?.getBoundingClientRect()
+        if (!box) return null
+        const pivotScreenX = box.left + box.width  * (pivotX / 100)
+        const pivotScreenY = box.top  + box.height * (pivotY / 100)
         const sz = rig.circleSize + 120
         const cx = sz / 2, cy = sz / 2
         const r  = sz / 2 - 8
@@ -229,15 +240,15 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
         const shx = cx + r * 1.15 * Math.cos(scaleRad)
         const shy = cy + r * 1.15 * Math.sin(scaleRad)
 
-        return (
+        return createPortal(
             <svg
                 style={{
-                    position: 'absolute',
-                    left: `calc(${pivotX}% - ${sz / 2}px)`,
-                    top:  `calc(${pivotY}% - ${sz / 2}px)`,
+                    position: 'fixed',
+                    left: pivotScreenX - sz / 2,
+                    top: pivotScreenY - sz / 2,
                     overflow: 'visible',
                     pointerEvents: 'none',
-                    zIndex: 10,
+                    zIndex: 9999,
                 }}
                 width={sz}
                 height={sz}
@@ -293,7 +304,8 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
                     fill={rig.isScalingHandle ? '#4a9eff' : '#999999'}
                     fontFamily="ui-monospace,Consolas,'Courier New',monospace"
                 >{displayScale.toFixed(2)}×</text>
-            </svg>
+            </svg>,
+            document.body
         )
     }
 
