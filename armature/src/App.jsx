@@ -25,14 +25,16 @@ function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 80 }}>
             <Bone id="head" pivotX={50} pivotY={50}>
               <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#e8c520', border: '1px solid #b89b18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="52" height="52" viewBox="0 0 52 52">
+                <svg width="52" height="52" viewBox="0 0 52 52" draggable="false" style={{ WebkitUserDrag: 'none' }}>
                   <circle cx="15" cy="20" r="4" fill="#3a2f08" />
                   <circle cx="37" cy="20" r="4" fill="#3a2f08" />
                   <path d="M 10 30 Q 26 46 42 30" stroke="#3a2f08" strokeWidth="4" fill="none" strokeLinecap="round" />
                 </svg>
               </div>
             </Bone>
-            <Bone id="square" pivotX={50} pivotY={50}>
+            {/* Pivots from its bottom edge so its rotation reads as an actual
+                wave (swaying from a fixed base), not spinning in place. */}
+            <Bone id="square" pivotX={50} pivotY={100}>
               <div style={{ width: 60, height: 60, background: '#e8c520', border: '1px solid #b89b18' }} />
             </Bone>
           </div>

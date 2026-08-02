@@ -11,6 +11,7 @@ function RigStage({ children }) {
             <div
                 data-rig-stage="true"
                 style={{ position: 'relative', width: '100%', height: '100%' }}
+                onDragStart={(e) => e.preventDefault()}
             >
                 {children}
             </div>

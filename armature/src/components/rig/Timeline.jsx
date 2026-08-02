@@ -86,7 +86,10 @@ function Timeline() {
     // with the scale (transformOrigin anchors it to the true viewport bottom).
     return [
     createPortal(
-        <div style={{ position: 'fixed', bottom: dragOffset, left: 0, width: `${100 / uiScale}vw`, height: timelineHeight, transform: uiScale !== 1 ? `scale(${uiScale})` : undefined, transformOrigin: 'bottom left', background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}>
+        <div
+            onDragStart={(e) => e.preventDefault()}
+            style={{ position: 'fixed', bottom: dragOffset, left: 0, width: `${100 / uiScale}vw`, height: timelineHeight, transform: uiScale !== 1 ? `scale(${uiScale})` : undefined, transformOrigin: 'bottom left', background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}
+        >
 
             {/* Drag handle — vertical-only reposition, held by the edge */}
             <div
