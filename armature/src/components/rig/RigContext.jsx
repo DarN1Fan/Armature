@@ -1,5 +1,6 @@
 import { createContext, useContext, useRef, useState, useEffect } from 'react'
 import { interpolateTrack } from './interpolation.js'
+import { normalizeRigData } from './rigData.js'
 
 // ---------------------------------------------------------------------------
 // Context + hook
@@ -40,45 +41,20 @@ function upsertKf(track, frame, value) {
 }
 
 // ---------------------------------------------------------------------------
-// Migration: v1 flat shape → v2 bones array
-// ---------------------------------------------------------------------------
-export function migrateV1(data) {
-    if (data.version === 2) return data
-    // v1 detection: no version field, has xKeyframes etc.
-    return {
-        version: 2,
-        duration: data.duration ?? 300,
-        fps: data.fps ?? 60,
-        bones: [
-            {
-                id: 'bone',
-                parentId: null,
-                pivotX: data.boneX ?? 0,
-                pivotY: data.boneY ?? 50,
-                tracks: {
-                    x:        data.xKeyframes        ?? [],
-                    y:        data.yKeyframes        ?? [],
-                    rotation: data.rotationKeyframes ?? [],
-                    scale:    data.scaleKeyframes    ?? [],
-                },
-            },
-        ],
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Provider component — the ONE store
 // ---------------------------------------------------------------------------
 
-export function RigProvider({ children }) {
+export function RigProvider({ children, initialRig, uiScale = 1 }) {
+    const [seed] = useState(() => (initialRig ? normalizeRigData(initialRig) : null))
+
     // ── bones keyed by id ──────────────────────────────────────────────────
-    const [bones, setBones] = useState({})          // { [id]: BoneRecord }
-    const [boneOrder, setBoneOrder] = useState([])  // DFS registration order
+    const [bones, setBones] = useState(() => seed?.bones ?? {})          // { [id]: BoneRecord }
+    const [boneOrder, setBoneOrder] = useState(() => seed?.boneOrder ?? [])  // DFS registration order
 
     // ── clock ──────────────────────────────────────────────────────────────
     const [currentFrame, setCurrentFrame] = useState(0)
-    const [duration, setDuration] = useState(300)
-    const [durationInput, setDurationInput] = useState('300')
+    const [duration, setDuration] = useState(() => seed?.duration ?? 300)
+    const [durationInput, setDurationInput] = useState(() => String(seed?.duration ?? 300))
     const [fps] = useState(60)
     const [isPlaying, setIsPlaying] = useState(false)
     const [isLooping, setIsLooping] = useState(false)
@@ -93,6 +69,7 @@ export function RigProvider({ children }) {
     // ── interaction flags (lifted so Timeline + Bone can both respond) ─────
     const [isDragging, setIsDragging] = useState(false)
     const [isRotating, setIsRotating] = useState(false)
+    const [isScalingHandle, setIsScalingHandle] = useState(false)
     const [isScrubbing, setIsScrubbing] = useState(false)
     const [isDraggingKeyframe, setIsDraggingKeyframe] = useState(false)
     const [isSelectDragging, setIsSelectDragging] = useState(false)
@@ -152,7 +129,7 @@ export function RigProvider({ children }) {
 
     // ── history ────────────────────────────────────────────────────────────
     // Each snapshot: { bones: deepCopy }
-    const history      = useRef([{ bones: {} }])
+    const history      = useRef([{ bones: seed ? deepCloneBones(seed.bones) : {} }])
     const historyIndex = useRef(0)
 
     // ── sync refs ──────────────────────────────────────────────────────────
@@ -288,11 +265,15 @@ export function RigProvider({ children }) {
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mouseup', handleMouseUp)
         }
-    }, [isDraggingKeyframe]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isDraggingKeyframe])
 
     // ── Marquee / drag-to-select ───────────────────────────────────────────
     useEffect(() => {
         if (!isSelectDragging) return
+        // getBoundingClientRect()/clientX/clientY are post-uiScale screen pixels;
+        // scrollLeft and the track-row layout below are local (pre-scale) pixels.
+        // Divide screen deltas by uiScale before mixing the two, or the box drifts
+        // away from the cursor proportionally to uiScale and distance dragged.
         function handleMouseMove(e) {
             const container = trackContainerRef.current
             if (!container) return
@@ -300,8 +281,8 @@ export function RigProvider({ children }) {
             setSelectDragRect({
                 x1: selectDragStartRef.current.x,
                 y1: selectDragStartRef.current.y,
-                x2: e.clientX - rect.left + container.scrollLeft,
-                y2: e.clientY - rect.top,
+                x2: (e.clientX - rect.left) / uiScale + container.scrollLeft,
+                y2: (e.clientY - rect.top) / uiScale,
             })
         }
         function handleMouseUp(e) {
@@ -313,11 +294,11 @@ export function RigProvider({ children }) {
             const scrollLeft = container.scrollLeft
             const x1 = selectDragStartRef.current.x
             const y1 = selectDragStartRef.current.y
-            const x2 = e.clientX - rect.left + scrollLeft
-            const y2 = e.clientY - rect.top
+            const x2 = (e.clientX - rect.left) / uiScale + scrollLeft
+            const y2 = (e.clientY - rect.top) / uiScale
             const minX = Math.min(x1, x2), maxX = Math.max(x1, x2)
             const minY = Math.min(y1, y2), maxY = Math.max(y1, y2)
-            const zoomedWidth = rect.width * zoomRef.current
+            const zoomedWidth = (rect.width / uiScale) * zoomRef.current
             const minFrame    = (minX / zoomedWidth) * durationRef.current
             const maxFrame    = (maxX / zoomedWidth) * durationRef.current
 
@@ -383,7 +364,7 @@ export function RigProvider({ children }) {
             window.removeEventListener('mousemove', handleMouseMove)
             window.removeEventListener('mouseup', handleMouseUp)
         }
-    }, [isScrubbing]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isScrubbing])
 
     // ── Active-bone position drag ──────────────────────────────────────────
     useEffect(() => {
@@ -672,33 +653,12 @@ export function RigProvider({ children }) {
         const reader = new FileReader()
         reader.onload = (ev) => {
             try {
-                const raw  = JSON.parse(ev.target.result)
-                const data = migrateV1(raw)
-                if (!Array.isArray(data.bones)) throw new Error('missing bones')
-                // Rebuild bones map from imported data
-                const newBones = {}
-                const newOrder = []
-                for (const b of data.bones) {
-                    newBones[b.id] = {
-                        id: b.id,
-                        parentId: b.parentId ?? null,
-                        pivotX: b.pivotX ?? 0,
-                        pivotY: b.pivotY ?? 50,
-                        tracks: {
-                            x:        b.tracks?.x        ?? [],
-                            y:        b.tracks?.y        ?? [],
-                            rotation: b.tracks?.rotation ?? [],
-                            scale:    b.tracks?.scale    ?? [],
-                        },
-                    }
-                    newOrder.push(b.id)
-                }
+                const raw = JSON.parse(ev.target.result)
+                const { bones: newBones, boneOrder: newOrder, duration: newDuration } = normalizeRigData(raw)
                 setBones(newBones)
                 setBoneOrder(newOrder)
-                if (data.duration != null) {
-                    setDuration(data.duration)
-                    setDurationInput(String(data.duration))
-                }
+                setDuration(newDuration)
+                setDurationInput(String(newDuration))
                 setCurrentFrame(0); setIsPlaying(false); setSelectedKeyframes([])
                 setExpandedBones(Object.fromEntries(newOrder.map(id => [id, true])))
                 setSelectedBoneId(newOrder[0] ?? null)
@@ -752,6 +712,8 @@ export function RigProvider({ children }) {
         expandedBones,
         isDragging, setIsDragging,
         isRotating, setIsRotating,
+        isScalingHandle, setIsScalingHandle,
+        uiScale,
         isScrubbing, setIsScrubbing,
         isDraggingKeyframe, setIsDraggingKeyframe,
         isSelectDragging, setIsSelectDragging,

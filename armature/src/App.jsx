@@ -1,5 +1,6 @@
 import RigEditor from './components/rig/RigEditor.jsx'
 import Bone from './components/rig/Bone.jsx'
+import waveHello from './animations/wave-hello.js'
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
 
       {/* Arm rig centered in viewport — Timeline portals to document.body so it always anchors to the true viewport bottom */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-        <RigEditor>
+        <RigEditor initialRig={waveHello}>
           {/* Shoulder — widest, longest */}
           <Bone id="shoulder" pivotX={50} pivotY={0}>
             <div style={{ position: 'relative', width: 22, height: 90, background: '#3d3d3d', border: '1px solid #555', borderRadius: 5 }}>

@@ -55,7 +55,6 @@ function AnimationEditor({ children, boneX = 50, boneY = 50 }) {
     const rotationRef = useRef(0)
     const scaleRef = useRef(1)
     const scaleStampTimeout = useRef(null)
-    const startTime = useRef(null)
     const prevAngle = useRef(null)
     const isDraggingDegree = useRef(false)
     const degreeDragStartX = useRef(0)
