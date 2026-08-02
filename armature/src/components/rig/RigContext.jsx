@@ -140,6 +140,17 @@ export function RigProvider({ children, initialRig, uiScale = 1 }) {
     useEffect(() => { durationRef.current      = duration }, [duration])
     useEffect(() => { zoomRef.current          = zoom }, [zoom])
     useEffect(() => { selectedBoneIdRef.current = selectedBoneId }, [selectedBoneId])
+    // liveScale is a single shared value representing "the active bone's live
+    // scale" -- without this, switching which bone is active leaves it holding
+    // the PREVIOUS bone's value, so typing/scrolling a new scale for the newly
+    // active bone starts from stale data instead of that bone's own value.
+    useEffect(() => {
+        const bone = bonesRef.current[selectedBoneId]
+        const interp = bone ? interpolateTrack(currentFrameRef.current, bone.tracks.scale) : null
+        const value = interp !== null ? interp : 1
+        setLiveScale(value)
+        liveScaleRef.current = value
+    }, [selectedBoneId])
     useEffect(() => { setScaleInput(liveScale.toFixed(2)) }, [liveScale])
     useEffect(() => {
         if (!toast) return
