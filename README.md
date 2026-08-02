@@ -19,7 +19,7 @@ npm install
 npm run dev
 ```
 
-This launches the demo app: a small hierarchical arm rig (shoulder → elbow → wrist → hand) wired into the full `RigEditor` timeline, so you can see the whole editing surface (drag, rotate, scale, keyframes, easing curves, undo/redo, export/import) working end to end.
+This launches the demo app: an empty `RigEditor` — the full editing surface (Timeline, drag, rotate, scale, keyframes, easing curves, undo/redo, export/import) with no bones wired in yet. Add a `<Bone>` (see "Animate an object with Claude" below) or load `armature/src/animations/wave-hello.js` via `initialRig` to see it in action; that file is also the reference example for a parent/child bone hierarchy (a hierarchical arm rig, shoulder → elbow → wrist → hand — not currently wired into `App.jsx`).
 
 ## What's here today
 
