@@ -1,4 +1,4 @@
-import { useEffect, useRef, useContext, createContext, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useContext, createContext, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useRig } from './RigContext.jsx'
 import AnimationBone from '../AnimationBone.jsx'
@@ -12,6 +12,27 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     const parentId = useContext(BoneParentContext)
     const measureRef = useRef(null)
     const scaleDragStartRef = useRef({ distance: 1, scale: 1 })
+
+    // Screen position of this bone's own pivot point, used by the portaled
+    // marker/ring below. Measured in useLayoutEffect (after commit, before
+    // paint) rather than inline during render: reading
+    // measureRef.current.getBoundingClientRect() *during* render always
+    // reflects the DOM as of the *previous* commit, since React hasn't
+    // applied the current render's styles yet at that point -- a bone that
+    // isn't changing every frame (e.g. sitting still while a different bone
+    // is being dragged) could then show a stale marker position until
+    // something happened to force it to re-measure at the right moment.
+    const [pivotScreen, setPivotScreen] = useState(null)
+    // Intentionally runs after every render (no deps) -- see comment above for why.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useLayoutEffect(() => {
+        const el = measureRef.current
+        if (!el) return
+        const box = el.getBoundingClientRect()
+        const x = box.left + box.width  * (pivotX / 100)
+        const y = box.top  + box.height * (pivotY / 100)
+        setPivotScreen(prev => (prev && prev.x === x && prev.y === y) ? prev : { x, y })
+    })
 
     // Register on mount
     useEffect(() => {
@@ -242,10 +263,9 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     // which bone's shape is visually on top at that point — the direct fix
     // for reaching a bone whose shape is fully covered by its own descendant.
     function renderPivotMarker() {
-        const box = measureRef.current?.getBoundingClientRect()
-        if (!box) return null
-        const screenX = box.left + box.width  * (pivotX / 100)
-        const screenY = box.top  + box.height * (pivotY / 100)
+        if (!pivotScreen) return null
+        const screenX = pivotScreen.x
+        const screenY = pivotScreen.y
         return createPortal(
             <div
                 onMouseDown={(e) => { e.stopPropagation(); e.preventDefault() }}
@@ -292,11 +312,9 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     // ancestor's ring/handles regardless of z-index. Portaling escapes that
     // entirely, same pattern as the Timeline and its easing tooltip.
     function renderRotationRing() {
-        if (!isActive || !rig.showRotation) return null
-        const box = measureRef.current?.getBoundingClientRect()
-        if (!box) return null
-        const pivotScreenX = box.left + box.width  * (pivotX / 100)
-        const pivotScreenY = box.top  + box.height * (pivotY / 100)
+        if (!isActive || !rig.showRotation || !pivotScreen) return null
+        const pivotScreenX = pivotScreen.x
+        const pivotScreenY = pivotScreen.y
         const sz = rig.circleSize + 120
         const cx = sz / 2, cy = sz / 2
         const r  = sz / 2 - 8
