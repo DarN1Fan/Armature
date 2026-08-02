@@ -17,7 +17,7 @@
 - `duration` (seconds, top-level): if provided, keyframes past it throw; if omitted, computed as `Math.ceil(maxKeyframeTimeSeconds * fps)`.
 - Two keyframe entries landing on the same rounded frame, same track, with **different** values throw. Identical duplicates (e.g. from overlapping presets) are silently deduped.
 - Out of scope for this plan (per spec): no live bridge/MCP server, no CLI or build step, no natural-language parsing inside Armature, no physics/IK simulation, no new persistence format.
-- No React component test infrastructure exists in this repo and none is added by this plan — every new module is a pure function tested directly with Vitest. The one genuinely React-facing change (the `initialRig` prop) is verified manually via the dev server in Task 6 and exercised end-to-end in Task 7, not via an automated component test.
+- Most new logic is pure functions tested directly with Vitest under the `node` environment. Task 6 (the `initialRig` prop, the one genuinely React-facing change) adds the repo's first component test, using `@testing-library/react` + `jsdom` scoped to that one file via a per-file `// @vitest-environment jsdom` override — every other test stays on the fast `node` environment.
 
 ---
 
@@ -1034,16 +1034,119 @@ git commit -m "Extract normalizeRigData() out of the file-import path"
 ### Task 6: `initialRig` prop on `RigEditor` / `RigProvider`
 
 **Files:**
+- Modify: `armature/vitest.config.js`
+- Modify: `armature/package.json`
 - Modify: `armature/src/components/rig/RigContext.jsx:73-156` (approximate — the `RigProvider` function signature, its `bones`/`boneOrder`/`duration`/`durationInput` state declarations, and the `history` ref)
 - Modify: `armature/src/components/rig/RigEditor.jsx`
+- Test: `armature/src/components/rig/RigProvider.initialRig.test.jsx`
 
 **Interfaces:**
-- Consumes: `normalizeRigData()` from Task 5.
+- Consumes: `normalizeRigData()` from Task 5; `useRig()` (already exported from `RigContext.jsx`).
 - Produces: `<RigEditor initialRig={rigData}>` / `RigProvider({children, initialRig})`, where `rigData` is the object `defineRig()` (Task 2) or `exportRig()` produce — consumed by Task 7.
 
-No new automated test in this task: `normalizeRigData()` is already fully covered in Task 5, and this task only wires its result into two existing `useState` calls plus a `useRef` baseline. The repo has no React component test harness, and adding one is out of scope for this plan (see Global Constraints). Correctness is verified manually here and exercised for real in Task 7.
+This is the repo's first component-level test, so it also installs `@testing-library/react` + `jsdom` and points Vitest at the project's Vite plugins so JSX test files transform. The `jsdom` environment is opted into per-file (via a docblock) so every other test keeps using the fast `node` environment.
 
-- [ ] **Step 1: Seed `RigProvider`'s state from `initialRig`**
+- [ ] **Step 1: Install the component-testing dependencies**
+
+Run (from `armature/`):
+```bash
+npm install -D @testing-library/react jsdom
+```
+
+- [ ] **Step 2: Let Vitest use the project's Vite plugins (for JSX)**
+
+Replace `armature/vitest.config.js` with:
+```js
+import { defineConfig, mergeConfig } from 'vitest/config'
+import viteConfig from './vite.config.js'
+
+export default mergeConfig(viteConfig, defineConfig({
+  test: {
+    environment: 'node',
+  },
+}))
+```
+This merges in the existing `@vitejs/plugin-react` from `vite.config.js` so `.jsx` test files transform correctly. The default environment stays `node` — only the one test file in this task opts into `jsdom`.
+
+- [ ] **Step 3: Write the failing test**
+
+Create `armature/src/components/rig/RigProvider.initialRig.test.jsx`:
+```jsx
+// @vitest-environment jsdom
+import { describe, it, expect, afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
+import { RigProvider, useRig } from './RigContext.jsx'
+
+afterEach(() => cleanup())
+
+function Probe() {
+  const rig = useRig()
+  return (
+    <pre data-testid="probe">
+      {JSON.stringify({
+        boneOrder: rig.boneOrder,
+        duration: rig.duration,
+        shoulderRotation: rig.bones.shoulder?.tracks.rotation ?? null,
+      })}
+    </pre>
+  )
+}
+
+describe('RigProvider — initialRig', () => {
+  it('seeds bones, boneOrder, and duration from the initialRig prop', () => {
+    const initialRig = {
+      version: 2,
+      duration: 90,
+      fps: 60,
+      bones: [
+        {
+          id: 'shoulder', parentId: null, pivotX: 50, pivotY: 0,
+          tracks: {
+            x: [], y: [], scale: [],
+            rotation: [
+              { frame: 0, value: 0, easing: 'linear' },
+              { frame: 90, value: 45, easing: 'linear' },
+            ],
+          },
+        },
+      ],
+    }
+    render(
+      <RigProvider initialRig={initialRig}>
+        <Probe />
+      </RigProvider>
+    )
+    const parsed = JSON.parse(screen.getByTestId('probe').textContent)
+    expect(parsed.boneOrder).toEqual(['shoulder'])
+    expect(parsed.duration).toBe(90)
+    expect(parsed.shoulderRotation).toEqual([
+      { frame: 0, value: 0, easing: 'linear' },
+      { frame: 90, value: 45, easing: 'linear' },
+    ])
+  })
+
+  it('falls back to defaults when no initialRig is given', () => {
+    render(
+      <RigProvider>
+        <Probe />
+      </RigProvider>
+    )
+    const parsed = JSON.parse(screen.getByTestId('probe').textContent)
+    expect(parsed.boneOrder).toEqual([])
+    expect(parsed.duration).toBe(300)
+  })
+})
+```
+
+- [ ] **Step 4: Run the test, verify it fails**
+
+Run (from `armature/`):
+```bash
+npx vitest run src/components/rig/RigProvider.initialRig.test.jsx
+```
+Expected: FAIL — `RigProvider` doesn't read an `initialRig` prop yet, so the seeded case's `boneOrder`/`duration`/`shoulderRotation` assertions don't match (the empty-default case may already pass — that's fine, both are checked together next).
+
+- [ ] **Step 5: Seed `RigProvider`'s state from `initialRig`**
 
 In `armature/src/components/rig/RigContext.jsx`, change the `RigProvider` function signature (currently `export function RigProvider({ children }) {`) to:
 ```js
@@ -1076,7 +1179,7 @@ to:
     const [durationInput, setDurationInput] = useState(() => String(seed?.duration ?? 300))
 ```
 
-- [ ] **Step 2: Seed the undo/redo history baseline**
+- [ ] **Step 6: Seed the undo/redo history baseline**
 
 Still in `RigContext.jsx`, change the history ref initializer (currently `const history      = useRef([{ bones: {} }])`) to:
 ```js
@@ -1084,7 +1187,7 @@ Still in `RigContext.jsx`, change the history ref initializer (currently `const 
 ```
 This matters: without it, pressing undo immediately after an agent-authored rig loads would revert to an empty rig instead of back to the authored one. `deepCloneBones` is a function declaration later in the same component (hoisted, so it's callable here).
 
-- [ ] **Step 3: Thread the prop through `RigEditor`**
+- [ ] **Step 7: Thread the prop through `RigEditor`**
 
 In `armature/src/components/rig/RigEditor.jsx`, change:
 ```js
@@ -1113,7 +1216,15 @@ function RigEditor({ children, initialRig }) {
 }
 ```
 
-- [ ] **Step 4: Manually verify seeding works**
+- [ ] **Step 8: Run the test, verify it passes**
+
+Run:
+```bash
+npx vitest run src/components/rig/RigProvider.initialRig.test.jsx
+```
+Expected: PASS — 2 tests passed.
+
+- [ ] **Step 9: Manually verify in the browser**
 
 Run (from `armature/`):
 ```bash
@@ -1121,18 +1232,18 @@ npm run dev
 ```
 Temporarily edit `armature/src/App.jsx`: import `{ defineRig, bone, at } from './script/index.js'`, build a small rig (e.g. `defineRig({ bones: [bone('shoulder', { pivot: [50,0] }, [at(0,{rotation:0}), at(1,{rotation:45})])] })`), and pass it as `<RigEditor initialRig={testRig}>`. Expected in the browser: the Rotation track for `shoulder` already shows two keyframes on load, without any manual interaction — confirming the seed reached the Timeline. Press Ctrl+Z once: the keyframes should remain (there's nothing earlier to undo to besides the seeded state itself). Revert this temporary edit to `App.jsx` before continuing (Task 7 replaces it properly).
 
-- [ ] **Step 5: Run the full test suite**
+- [ ] **Step 10: Run the full test suite**
 
 Run:
 ```bash
 npx vitest run
 ```
-Expected: PASS — 33 tests passed (unchanged from Task 5 — no new automated tests in this task).
+Expected: PASS — 35 tests passed (33 from Tasks 1–5 plus 2 from this task).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
-git add armature/src/components/rig/RigContext.jsx armature/src/components/rig/RigEditor.jsx
+git add armature/vitest.config.js armature/package.json armature/package-lock.json armature/src/components/rig/RigContext.jsx armature/src/components/rig/RigEditor.jsx armature/src/components/rig/RigProvider.initialRig.test.jsx
 git commit -m "Add initialRig prop to seed RigEditor from agent-authored data"
 ```
 
@@ -1248,7 +1359,7 @@ Run:
 ```bash
 npx vitest run
 ```
-Expected: PASS — 35 tests passed.
+Expected: PASS — 37 tests passed (35 from Tasks 1–6 plus 2 from this task).
 
 - [ ] **Step 8: Commit**
 
