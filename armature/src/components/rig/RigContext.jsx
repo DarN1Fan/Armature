@@ -1,5 +1,6 @@
 import { createContext, useContext, useRef, useState, useEffect } from 'react'
 import { interpolateTrack } from './interpolation.js'
+import { normalizeRigData } from './rigData.js'
 
 // ---------------------------------------------------------------------------
 // Context + hook
@@ -37,33 +38,6 @@ function upsertKf(track, frame, value) {
         return next
     }
     return [...track, { frame, value, easing: 'linear' }].sort((a, b) => a.frame - b.frame)
-}
-
-// ---------------------------------------------------------------------------
-// Migration: v1 flat shape → v2 bones array
-// ---------------------------------------------------------------------------
-export function migrateV1(data) {
-    if (data.version === 2) return data
-    // v1 detection: no version field, has xKeyframes etc.
-    return {
-        version: 2,
-        duration: data.duration ?? 300,
-        fps: data.fps ?? 60,
-        bones: [
-            {
-                id: 'bone',
-                parentId: null,
-                pivotX: data.boneX ?? 0,
-                pivotY: data.boneY ?? 50,
-                tracks: {
-                    x:        data.xKeyframes        ?? [],
-                    y:        data.yKeyframes        ?? [],
-                    rotation: data.rotationKeyframes ?? [],
-                    scale:    data.scaleKeyframes    ?? [],
-                },
-            },
-        ],
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -672,33 +646,12 @@ export function RigProvider({ children }) {
         const reader = new FileReader()
         reader.onload = (ev) => {
             try {
-                const raw  = JSON.parse(ev.target.result)
-                const data = migrateV1(raw)
-                if (!Array.isArray(data.bones)) throw new Error('missing bones')
-                // Rebuild bones map from imported data
-                const newBones = {}
-                const newOrder = []
-                for (const b of data.bones) {
-                    newBones[b.id] = {
-                        id: b.id,
-                        parentId: b.parentId ?? null,
-                        pivotX: b.pivotX ?? 0,
-                        pivotY: b.pivotY ?? 50,
-                        tracks: {
-                            x:        b.tracks?.x        ?? [],
-                            y:        b.tracks?.y        ?? [],
-                            rotation: b.tracks?.rotation ?? [],
-                            scale:    b.tracks?.scale    ?? [],
-                        },
-                    }
-                    newOrder.push(b.id)
-                }
+                const raw = JSON.parse(ev.target.result)
+                const { bones: newBones, boneOrder: newOrder, duration: newDuration } = normalizeRigData(raw)
                 setBones(newBones)
                 setBoneOrder(newOrder)
-                if (data.duration != null) {
-                    setDuration(data.duration)
-                    setDurationInput(String(data.duration))
-                }
+                setDuration(newDuration)
+                setDurationInput(String(newDuration))
                 setCurrentFrame(0); setIsPlaying(false); setSelectedKeyframes([])
                 setExpandedBones(Object.fromEntries(newOrder.map(id => [id, true])))
                 setSelectedBoneId(newOrder[0] ?? null)
