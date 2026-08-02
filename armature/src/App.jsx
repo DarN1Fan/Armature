@@ -1,6 +1,13 @@
 import RigEditor from './components/rig/RigEditor.jsx'
 import Bone from './components/rig/Bone.jsx'
 import waveHello from './animations/wave-hello.js'
+import ballBounce from './animations/ball-bounce.js'
+
+const initialRig = {
+  ...waveHello,
+  duration: Math.max(waveHello.duration, ballBounce.duration),
+  bones: [...waveHello.bones, ...ballBounce.bones],
+}
 
 function App() {
   return (
@@ -21,7 +28,7 @@ function App() {
 
       {/* Arm rig centered in viewport — Timeline portals to document.body so it always anchors to the true viewport bottom */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-        <RigEditor initialRig={waveHello}>
+        <RigEditor initialRig={initialRig}>
           {/* Shoulder — widest, longest */}
           <Bone id="shoulder" pivotX={50} pivotY={0}>
             <div style={{ position: 'relative', width: 22, height: 90, background: '#3d3d3d', border: '1px solid #555', borderRadius: 5 }}>
@@ -53,6 +60,13 @@ function App() {
               </div>
             </div>
           </Bone>
+
+          {/* Ball — a second, independent object, unrelated to the arm hierarchy */}
+          <div style={{ position: 'absolute', top: '-140px', left: '260px' }}>
+            <Bone id="ball" pivotX={50} pivotY={50}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#e8a020', border: '1px solid #b97e18' }} />
+            </Bone>
+          </div>
         </RigEditor>
       </div>
     </div>
