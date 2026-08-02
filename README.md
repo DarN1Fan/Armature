@@ -25,7 +25,7 @@ This launches the demo app: a small hierarchical arm rig (shoulder → elbow →
 
 - **`AnimationBone`** — wraps any element and transforms it (position, rotation, scale) around a configurable pivot point.
 - **`AnimationEditor`** — adds drag-to-move / drag-to-rotate controls on top of a single `AnimationBone`.
-- **`RigEditor` + `Bone`** — the full editor: compose multiple `Bone` components into a parent/child hierarchy, and get a Blender-style timeline with per-bone tracks (X, Y, rotation, scale), keyframes, easing presets, marquee selection, copy/paste, undo/redo, and JSON export/import.
+- **`RigEditor` + `Bone`** — the full editor: compose multiple `Bone` components into a parent/child hierarchy, and get a Blender-style timeline with per-bone tracks (X, Y, rotation, scale), keyframes, easing presets, marquee selection, copy/paste, undo/redo, and JSON export/import. Click a bone, click again to enter rotate mode, and drag the ring to rotate or the small square handle beside it to scale — both update live and stamp a keyframe on release.
 - **Agent-authored animations** (`armature/src/script/`) — a command layer (`defineRig`, `bone`, `at`, plus gesture presets `wave`/`bounce`/`nod`/`spin`/`pulse`) that lets an AI coding agent write an animation as a small JS file instead of driving the UI by hand, loaded into the editor via a new `initialRig` prop. Design spec: [`docs/superpowers/specs/2026-08-01-agent-animation-commands-design.md`](docs/superpowers/specs/2026-08-01-agent-animation-commands-design.md).
 
 ## Animate an object with Claude
@@ -100,4 +100,9 @@ function App() {
 
 The ref exposes: `play()`, `pause()`, `togglePlay()`, `restart()` (rewinds to frame 0 and plays), `scrubTo(frame)`, `setLooping(bool)`, plus read-only `isPlaying` / `currentFrame` / `duration`. The button doesn't need to be inside `<RigEditor>` — the ref works from anywhere on the page. The rig still has full internal state (undo history, keyframes) — `showTimeline` only hides the editing chrome, so you can flip it back to `true` later (e.g. behind a dev-only flag) without touching the animation data.
 
+## Resizing the Timeline UI
+
+`<RigEditor uiScale={1.4}>` scales the whole Timeline — buttons, text, track rows — uniformly via a CSS transform. `1` (the default) is original size; anything higher makes the whole editing surface bigger, useful on a high-DPI display or when projecting for a demo.
+
 - **Run the test suite:** `npm test` (Vitest — the script layer is unit-tested independent of the browser).
+- **Run the linter:** `npm run lint` (ESLint — clean by design; a few React-Compiler-readiness rules are intentionally disabled where they conflict with the rig editor's real-time, ref-driven drag interactions — see `eslint.config.js` for the rationale).
