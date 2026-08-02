@@ -21,7 +21,7 @@ function App() {
 
       {/* Ball — centered in viewport */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-        <RigEditor initialRig={ballBounce}>
+        <RigEditor initialRig={ballBounce} uiScale={1.5}>
           <Bone id="ball" pivotX={50} pivotY={50}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#e8a020', border: '1px solid #b97e18' }} />
           </Bone>

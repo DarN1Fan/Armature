@@ -131,6 +131,17 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
         }
     }, [rig.showRotation, isActive]) // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Sync live scale to the current interpolated value when entering rotate/scale mode,
+    // so wheel-scroll and the scale handle both start from the true current value.
+    useEffect(() => {
+        if (!rig.showRotation || !isActive) return
+        const b = rig.bonesRef.current[id]
+        const si = b ? interpolateTrack(rig.currentFrameRef.current, b.tracks.scale) : null
+        const value = si !== null ? si : 1
+        rig.setLiveScale(value)
+        rig.liveScaleRef.current = value
+    }, [rig.showRotation, isActive]) // eslint-disable-line react-hooks/exhaustive-deps
+
     // ── Click outside to exit rotation ────────────────────────────────────
     // (handled globally in RigEditor; this is a no-op here)
 
@@ -162,9 +173,9 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     let displayRotation = rotInterp !== null && !(isActive && rig.isRotating)
         ? rotInterp
         : (isActive ? rig.liveRotation : (rotInterp !== null ? rotInterp : 0))
-    let displayScale = scaleInterp !== null
+    let displayScale = scaleInterp !== null && !(isActive && rig.showRotation)
         ? scaleInterp
-        : (isActive ? rig.liveScale : 1)
+        : (isActive ? rig.liveScale : (scaleInterp !== null ? scaleInterp : 1))
 
     // ── Drag surface handlers (only for active bone) ───────────────────────
     function handleMouseDown(e) {

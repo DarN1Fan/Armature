@@ -7,7 +7,7 @@ import BoneTrackGroup from './BoneTrackGroup.jsx'
 // Timeline — pure rendering, all mouse/keyboard event logic lives in RigContext
 // ---------------------------------------------------------------------------
 
-function Timeline() {
+function Timeline({ uiScale = 1 }) {
     const rig = useRig()
 
     // ── Timeline height calculation ────────────────────────────────────────
@@ -56,8 +56,11 @@ function Timeline() {
     }
 
     // ── Render ────────────────────────────────────────────────────────────
+    // width is pre-divided by uiScale so the post-transform painted box still
+    // spans the full viewport width; height is left as-is so it visibly grows
+    // with the scale (transformOrigin anchors it to the true viewport bottom).
     return createPortal(
-        <div style={{ position: 'fixed', bottom: 0, left: 0, width: '100vw', height: timelineHeight, background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, width: `${100 / uiScale}vw`, height: timelineHeight, transform: uiScale !== 1 ? `scale(${uiScale})` : undefined, transformOrigin: 'bottom left', background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}>
 
             {/* Control bar */}
             <div style={{ height: 35, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', background: '#111', borderBottom: '1px solid #333', flexShrink: 0 }}>

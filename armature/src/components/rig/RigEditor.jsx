@@ -42,14 +42,16 @@ function RigPlayerHandle({ playerRef }) {
 // showTimeline=false hides the editing UI so the rig can be embedded as a
 // plain playback surface, driven via the forwarded ref (play/pause/restart/
 // scrubTo) from anywhere on the page — e.g. a button's onClick.
-const RigEditor = forwardRef(function RigEditor({ children, initialRig, showTimeline = true }, ref) {
+// uiScale scales the whole Timeline (buttons, text, track rows) uniformly —
+// 1 is the default/original size, e.g. 1.4 makes everything 40% bigger.
+const RigEditor = forwardRef(function RigEditor({ children, initialRig, showTimeline = true, uiScale = 1 }, ref) {
     return (
         <RigProvider initialRig={initialRig}>
             <RigPlayerHandle playerRef={ref} />
             <RigStage>
                 {children}
             </RigStage>
-            {showTimeline && <Timeline />}
+            {showTimeline && <Timeline uiScale={uiScale} />}
         </RigProvider>
     )
 })
