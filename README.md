@@ -69,4 +69,33 @@ This launches the demo app: a small hierarchical arm rig (shoulder → elbow →
 
    The animation plays on load with no manual interaction, and it's fully editable afterward — drag keyframes, tweak easing, scrub, undo — exactly like a hand-built rig. See `armature/src/animations/wave-hello.js` for a working multi-bone example (the arm demo's wave).
 
+## Trigger playback from an event, without the editor UI
+
+By default `<RigEditor>` renders the full Blender-style timeline underneath the rig. For a shipped product feature — play an animation on click, hover, or page load, with no scrubber/keyframe UI in the way — pass `showTimeline={false}` and drive playback imperatively via a ref:
+
+```jsx
+import { useRef } from 'react'
+import RigEditor from './components/rig/RigEditor.jsx'
+import Bone from './components/rig/Bone.jsx'
+import boxSpin from './animations/box-spin.js'
+
+function App() {
+  const rigRef = useRef(null)
+
+  return (
+    <>
+      <button onClick={() => rigRef.current.restart()}>Spin it</button>
+
+      <RigEditor ref={rigRef} initialRig={boxSpin} showTimeline={false}>
+        <Bone id="box" pivotX={50} pivotY={50}>
+          <div style={{ width: 80, height: 80, background: 'tomato' }} />
+        </Bone>
+      </RigEditor>
+    </>
+  )
+}
+```
+
+The ref exposes: `play()`, `pause()`, `togglePlay()`, `restart()` (rewinds to frame 0 and plays), `scrubTo(frame)`, `setLooping(bool)`, plus read-only `isPlaying` / `currentFrame` / `duration`. The button doesn't need to be inside `<RigEditor>` — the ref works from anywhere on the page. The rig still has full internal state (undo history, keyframes) — `showTimeline` only hides the editing chrome, so you can flip it back to `true` later (e.g. behind a dev-only flag) without touching the animation data.
+
 - **Run the test suite:** `npm test` (Vitest — the script layer is unit-tested independent of the browser).
