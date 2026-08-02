@@ -69,6 +69,7 @@ export function RigProvider({ children, initialRig }) {
     // ── interaction flags (lifted so Timeline + Bone can both respond) ─────
     const [isDragging, setIsDragging] = useState(false)
     const [isRotating, setIsRotating] = useState(false)
+    const [isScalingHandle, setIsScalingHandle] = useState(false)
     const [isScrubbing, setIsScrubbing] = useState(false)
     const [isDraggingKeyframe, setIsDraggingKeyframe] = useState(false)
     const [isSelectDragging, setIsSelectDragging] = useState(false)
@@ -707,6 +708,7 @@ export function RigProvider({ children, initialRig }) {
         expandedBones,
         isDragging, setIsDragging,
         isRotating, setIsRotating,
+        isScalingHandle, setIsScalingHandle,
         isScrubbing, setIsScrubbing,
         isDraggingKeyframe, setIsDraggingKeyframe,
         isSelectDragging, setIsSelectDragging,

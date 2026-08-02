@@ -10,6 +10,7 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     const rig = useRig()
     const parentId = useContext(BoneParentContext)
     const measureRef = useRef(null)
+    const scaleDragStartRef = useRef({ distance: 1, scale: 1 })
 
     // Register on mount
     useEffect(() => {
@@ -71,6 +72,56 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
             window.removeEventListener('mouseup', handleMouseUp)
         }
     }, [rig.isRotating, isActive]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Scale handle drag ───────────────────────────────────────────────────
+    const handleScaleMouseDown = useCallback((e) => {
+        e.stopPropagation()
+        if (rig.isPlaying) return
+        const el = measureRef.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const centerX = rect.left + rect.width  * (pivotX / 100)
+        const centerY = rect.top  + rect.height * (pivotY / 100)
+        const startDistance = Math.max(1, Math.hypot(e.clientX - centerX, e.clientY - centerY))
+        // sync live scale to interpolated
+        const bone = rig.bonesRef.current[id]
+        let startScale = rig.liveScale
+        if (bone) {
+            const si = interpolateTrack(rig.currentFrameRef.current, bone.tracks.scale)
+            if (si !== null) { startScale = si; rig.setLiveScale(si); rig.liveScaleRef.current = si }
+        }
+        scaleDragStartRef.current = { distance: startDistance, scale: startScale }
+        rig.setIsScalingHandle(true)
+    }, [rig, id, pivotX, pivotY])
+
+    // Scale-handle mousemove/up (only when this bone's handle is being dragged)
+    useEffect(() => {
+        if (!rig.isScalingHandle || !isActive) return
+        function handleMouseMove(e) {
+            const el = measureRef.current
+            if (!el) return
+            const rect = el.getBoundingClientRect()
+            const centerX = rect.left + rect.width  * (pivotX / 100)
+            const centerY = rect.top  + rect.height * (pivotY / 100)
+            const distance = Math.hypot(e.clientX - centerX, e.clientY - centerY)
+            const { distance: startDistance, scale: startScale } = scaleDragStartRef.current
+            const next = Math.max(0.05, startScale * (distance / startDistance))
+            rig.setLiveScale(next)
+            rig.liveScaleRef.current = next
+        }
+        function handleMouseUp() {
+            window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseup', handleMouseUp)
+            rig.setIsScalingHandle(false)
+            rig.stampScaleKeyframe(rig.liveScaleRef.current)
+        }
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', handleMouseUp)
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [rig.isScalingHandle, isActive]) // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Circle size for rotation ring ──────────────────────────────────────
     useEffect(() => {
@@ -162,6 +213,10 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
         const rad = (displayRotation - 90) * (Math.PI / 180)
         const ex  = cx + r * 0.85 * Math.cos(rad)
         const ey  = cy + r * 0.85 * Math.sin(rad)
+        // Scale handle: fixed screen-space corner (independent of rotation), like a resize handle.
+        const scaleRad = 45 * (Math.PI / 180)
+        const shx = cx + r * 1.15 * Math.cos(scaleRad)
+        const shy = cy + r * 1.15 * Math.sin(scaleRad)
 
         return (
             <svg
@@ -208,6 +263,25 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
                     style={{ pointerEvents: 'visibleStroke', cursor: 'crosshair' }}
                     onMouseDown={handleRotateMouseDown}
                 />
+                {/* Scale handle */}
+                <line x1={cx} y1={cy} x2={shx} y2={shy}
+                    stroke={rig.isScalingHandle ? '#4a9eff' : '#3a3a3a'} strokeWidth="1" strokeDasharray="3 3"
+                />
+                <rect x={shx - 5} y={shy - 5} width={10} height={10}
+                    fill={rig.isScalingHandle ? '#4a9eff' : '#1a1a1a'}
+                    stroke="#4a9eff" strokeWidth="1.5"
+                />
+                <circle cx={shx} cy={shy} r={12}
+                    fill="none" stroke="transparent" strokeWidth="14"
+                    role="button" aria-label="Drag to scale bone"
+                    style={{ pointerEvents: 'visibleStroke', cursor: 'nwse-resize' }}
+                    onMouseDown={handleScaleMouseDown}
+                />
+                <text x={shx} y={shy - 14}
+                    textAnchor="middle" fontSize="10"
+                    fill={rig.isScalingHandle ? '#4a9eff' : '#999999'}
+                    fontFamily="ui-monospace,Consolas,'Courier New',monospace"
+                >{displayScale.toFixed(2)}×</text>
             </svg>
         )
     }
