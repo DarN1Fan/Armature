@@ -249,8 +249,20 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
         return createPortal(
             <div
                 onMouseDown={(e) => { e.stopPropagation(); e.preventDefault() }}
-                onClick={(e) => { e.stopPropagation(); rig.setActiveBone(id) }}
-                title={`Bone: ${id}${isActive ? ' (active)' : ''} — click to select`}
+                onClick={(e) => {
+                    e.stopPropagation()
+                    // Mirror the shape's own click semantics: first click selects,
+                    // a second click (once already active) enters rotate mode --
+                    // otherwise a marker sitting dead-center (a common pivot) would
+                    // permanently intercept clicks meant for the shape and the
+                    // rotate/scale controls could never be reached.
+                    if (isActive) {
+                        if (!rig.isPlaying) rig.setShowRotation(prev => !prev)
+                    } else {
+                        rig.setActiveBone(id)
+                    }
+                }}
+                title={`Bone: ${id}${isActive ? ' (active)' : ''} — click to select${isActive ? ' / toggle rotate mode' : ''}`}
                 role="button"
                 aria-label={`Select bone ${id}`}
                 style={{

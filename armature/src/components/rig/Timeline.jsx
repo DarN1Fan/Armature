@@ -1,4 +1,5 @@
-﻿import { createPortal } from 'react-dom'
+﻿import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRig } from './RigContext.jsx'
 import { EASING_CURVES, ALL_EASINGS, niceTickIntervals } from './interpolation.js'
 import BoneTrackGroup from './BoneTrackGroup.jsx'
@@ -10,6 +11,30 @@ import BoneTrackGroup from './BoneTrackGroup.jsx'
 function Timeline() {
     const rig = useRig()
     const uiScale = rig.uiScale
+
+    // ── Vertical-only drag to reposition the panel ──────────────────────────
+    // Held by the thin strip along its own top edge. Horizontal movement is
+    // ignored entirely -- only up/down.
+    const [dragOffset, setDragOffset] = useState(0)
+    function handleDragHandleMouseDown(e) {
+        e.preventDefault()
+        const startClientY = e.clientY
+        const startOffset  = dragOffset
+        function onMove(ev) {
+            // Screen-space delta divided by uiScale to convert back to the
+            // panel's own local (pre-transform) pixels, same reasoning as the
+            // marquee-select fix: clientY is post-scale, `bottom` is not.
+            const delta = (startClientY - ev.clientY) / uiScale
+            const next  = Math.max(0, Math.min(window.innerHeight - 80, startOffset + delta))
+            setDragOffset(next)
+        }
+        function onUp() {
+            window.removeEventListener('mousemove', onMove)
+            window.removeEventListener('mouseup', onUp)
+        }
+        window.addEventListener('mousemove', onMove)
+        window.addEventListener('mouseup', onUp)
+    }
 
     // ── Timeline height calculation ────────────────────────────────────────
     const SCRUB_HEIGHT    = 30
@@ -62,7 +87,16 @@ function Timeline() {
     // with the scale (transformOrigin anchors it to the true viewport bottom).
     return [
     createPortal(
-        <div style={{ position: 'fixed', bottom: 0, left: 0, width: `${100 / uiScale}vw`, height: timelineHeight, transform: uiScale !== 1 ? `scale(${uiScale})` : undefined, transformOrigin: 'bottom left', background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}>
+        <div style={{ position: 'fixed', bottom: dragOffset, left: 0, width: `${100 / uiScale}vw`, height: timelineHeight, transform: uiScale !== 1 ? `scale(${uiScale})` : undefined, transformOrigin: 'bottom left', background: '#1a1a1a', display: 'flex', flexDirection: 'column', userSelect: 'none', borderTop: '1px solid #2a2a2a' }}>
+
+            {/* Drag handle — vertical-only reposition, held by the edge */}
+            <div
+                onMouseDown={handleDragHandleMouseDown}
+                title="Drag up/down to reposition the Timeline"
+                style={{ height: 7, flexShrink: 0, cursor: 'ns-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111' }}
+            >
+                <div style={{ width: 36, height: 3, borderRadius: 2, background: '#444' }} />
+            </div>
 
             {/* Control bar */}
             <div style={{ height: 35, display: 'flex', alignItems: 'center', gap: 6, padding: '0 10px', background: '#111', borderBottom: '1px solid #333', flexShrink: 0 }}>
