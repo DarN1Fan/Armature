@@ -28,7 +28,7 @@ Workflow:
 ## Multiple objects on screen
 
 - Unrelated objects (e.g. two separate shapes) → separate root-level `bone()` calls in the same `defineRig`, no `parent`. Each needs its own matching `<Bone id="...">` in the JSX, as siblings.
-- A real hierarchy (e.g. an arm: shoulder → elbow → wrist) → nest via `parent: 'parentBoneId'` in `bone()`, matching nested `<Bone>` JSX (child `<Bone>` physically inside the parent's subtree, so it inherits the parent's transform visually). See `armature/src/animations/wave-hello.js` for a working example (not currently wired into `App.jsx`, which is a blank `RigEditor` — wire it in the same way as any other rig via `initialRig` if you need one).
+- A real hierarchy (e.g. an arm: shoulder → elbow → wrist) → nest via `parent: 'parentBoneId'` in `bone()`, matching nested `<Bone>` JSX (child `<Bone>` physically inside the parent's subtree, so it inherits the parent's transform visually). See `armature/src/animations/wave-hello.js` and the arm demo in `App.jsx` for a working example.
 - Nested bones can visually overlap once rotated (a descendant always paints over its own ancestor in normal DOM stacking, regardless of z-index). Every `Bone` already renders a small always-on-top pivot dot at its own pivot point — click it to select that bone directly rather than relying on clicking its shape.
 
 ## Full design background
