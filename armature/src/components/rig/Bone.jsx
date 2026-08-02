@@ -237,6 +237,41 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
         }, 300)
     }
 
+    // ── Always-visible pivot marker ─────────────────────────────────────────
+    // One per bone, portaled above everything, always clickable regardless of
+    // which bone's shape is visually on top at that point — the direct fix
+    // for reaching a bone whose shape is fully covered by its own descendant.
+    function renderPivotMarker() {
+        const box = measureRef.current?.getBoundingClientRect()
+        if (!box) return null
+        const screenX = box.left + box.width  * (pivotX / 100)
+        const screenY = box.top  + box.height * (pivotY / 100)
+        return createPortal(
+            <div
+                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault() }}
+                onClick={(e) => { e.stopPropagation(); rig.setActiveBone(id) }}
+                title={`Bone: ${id}${isActive ? ' (active)' : ''} — click to select`}
+                role="button"
+                aria-label={`Select bone ${id}`}
+                style={{
+                    position: 'fixed',
+                    left: screenX,
+                    top: screenY,
+                    transform: 'translate(-50%, -50%)',
+                    width: isActive ? 16 : 11,
+                    height: isActive ? 16 : 11,
+                    borderRadius: '50%',
+                    background: isActive ? '#e8a020' : '#8a8a8a',
+                    border: `2px solid ${isActive ? '#fff8ec' : '#161616'}`,
+                    boxShadow: '0 0 0 1px rgba(0,0,0,0.5)',
+                    cursor: 'pointer',
+                    zIndex: 9998,
+                }}
+            />,
+            document.body
+        )
+    }
+
     // ── Rotation ring SVG ─────────────────────────────────────────────────
     // Portaled to document.body at a computed screen position, rather than
     // absolutely positioned inside this bone's own wrapper: a nested bone
@@ -373,6 +408,7 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
                     </AnimationBone>
                 </div>
                 {renderRotationRing()}
+                {renderPivotMarker()}
             </div>
         </BoneParentContext.Provider>
     )
