@@ -200,6 +200,27 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
         }
     }
 
+    // Right-click cycles selection through every bone actually under the
+    // cursor at that point (topmost first), not just this one. Bones are
+    // nested divs, so a descendant (e.g. hand, inside wrist inside elbow
+    // inside shoulder) always paints over and captures clicks from an
+    // ancestor wherever their boxes overlap -- normal DOM stacking, not a
+    // z-index bug -- which otherwise makes a fully-covered ancestor
+    // unreachable once the chain folds over itself.
+    function handleContextMenu(e) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (rig.isPlaying) return
+        const stack = document.elementsFromPoint(e.clientX, e.clientY)
+            .map(el => el.dataset?.boneId)
+            .filter(Boolean)
+        const order = [...new Set(stack)]
+        if (order.length === 0) return
+        const currentIndex = order.indexOf(rig.selectedBoneId)
+        const next = currentIndex === -1 ? order[0] : order[(currentIndex + 1) % order.length]
+        rig.setActiveBone(next)
+    }
+
     // ── Scale via scroll (only in rotation mode, only active) ─────────────
     function handleWheel(e) {
         if (!isActive || !rig.showRotation || rig.isPlaying) return
@@ -324,17 +345,19 @@ function Bone({ id, pivotX = 0, pivotY = 50, children }) {
     return (
         <BoneParentContext.Provider value={id}>
             <div
+                data-bone-id={id}
                 style={wrapperStyle}
                 title={isActive
                     ? (rig.showRotation
                         ? 'Drag the ring to rotate · Scroll to scale · Click to exit'
                         : 'Drag to move · Click to enter rotate mode')
-                    : `Bone: ${id} — click to activate`
+                    : `Bone: ${id} — click to activate · right-click to cycle through overlapping bones`
                 }
                 aria-label={`Bone ${id}${isActive ? ' (active)' : ''}`}
                 onWheel={isActive ? handleWheel : undefined}
                 onMouseDown={isActive ? handleMouseDown : (e) => { e.stopPropagation(); rig.setActiveBone(id) }}
                 onClick={isActive ? handleClick : undefined}
+                onContextMenu={handleContextMenu}
             >
                 <div style={{ pointerEvents: 'none' }} ref={measureRef}>
                     <AnimationBone
