@@ -1,6 +1,6 @@
 import RigEditor from './components/rig/RigEditor.jsx'
 import Bone from './components/rig/Bone.jsx'
-import ballBounce from './animations/ball-bounce.js'
+import ballSpinPulse from './animations/ball-spin-pulse.js'
 
 function App() {
   return (
@@ -21,7 +21,7 @@ function App() {
 
       {/* Ball — centered in viewport */}
       <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-        <RigEditor initialRig={ballBounce} uiScale={1.5}>
+        <RigEditor initialRig={ballSpinPulse} uiScale={1.5}>
           <Bone id="ball" pivotX={50} pivotY={50}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#e8a020', border: '1px solid #b97e18' }} />
           </Bone>
